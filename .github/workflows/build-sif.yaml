@@ -3,7 +3,7 @@ name: Apptainer build deploy
 on:
   push:
     tags:
-      - 'v*.*.*'   # Runs only for version tags like v1.2.3
+      - '*.*.*'   # Runs only for version tags like v1.2.3
 
 jobs:
   build:
