@@ -24,22 +24,13 @@ This directory contains scripts and configuration for running Jupyter Lab instan
 ```bash
 sbatch launch_jupyter_lab.sh
 ```
+### 2. Access Jupyter Lab
 
-### 2. Monitor the Job
-
-Check the job status and output:
-```bash
-squeue -u $USER
-tail -f /home/$USER/jupyter-lab.job.$SLURM_JOB_ID.out
-```
-
-### 3. Access Jupyter Lab
-
-Once the job is running, you'll see connection information in the stdout:
+Once the job is running, you'll see connection information in the outfile:
 - URL: `http://<hostname>.fhcrc.org:<port>`
 - Password: The generated password (if using password authentication)
 
-### 4. Terminate the Job
+### 3. Terminate the Job
 
 When you're done:
 1. Close all Jupyter notebooks and stop kernels
@@ -112,10 +103,3 @@ spython recipe ./jupyter-datascience-notebook.dockerfile > jupyter-datascience-n
 This repository includes pre-built SIF files hosted on GHCR. A tagged release will trigger a new build.
 
 `oras://ghcr.io/fred-hutch-innovation-lab/jupyter-lab-launcher:0.0.3`
-
-## Dependencies
-
-- SLURM job scheduler
-- Apptainer/Singularity
-- `fhfreeport` utility (FHIL-specific)
-- Jupyter Lab Apptainer image
