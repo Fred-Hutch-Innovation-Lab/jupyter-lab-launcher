@@ -1,71 +1,40 @@
 # Jupyter Lab on FHIL HPC
 
-This directory contains scripts and configuration for running Jupyter Lab instances on the FHIL HPC cluster using Apptainer containers. There are simpler methods of running jupyter on the cluster, but the goal of this method is to give you more control over the system libraries needed to use certain packages, and relies on a more transferable compute environment for reproducible analyses. 
+This directory contains scripts and configuration for running Jupyter Lab instances on the FHIL HPC cluster using Apptainer containers. This repository automatically publishes SIF files to GitHub Container Registry on tagged releases:
 
-## Prerequisites
+`oras://ghcr.io/fred-hutch-innovation-lab/jupyter-lab-launcher:latest`
 
-1. **Apptainer Image**: You need a Jupyter Lab Apptainer image (`.sif` file) placed in the `images/` directory, OR you can use cloud-hosted SIF files directly
-2. **Directory Structure**: Ensure the following directory structure exists:
-   ```
-   jupyter-lab-launcher/
-   ├── images/
-   │   └── jupyter-datascience-notebook.sif  # Local image (optional)
-   └── users/
-   │   └── $USER/
-   │        └── jupyter_lab_config.py         # Custom config (optional)
-   |
-   └── launch_jupyter_server.sh
-   ```
-
-## Usage
-
-### 1. Submit the SLURM Job
+## Quick Start
 
 ```bash
 sbatch launch_jupyter_lab.sh
 ```
-### 2. Access Jupyter Lab
 
-Once the job is running, you'll see connection information in the outfile:
-- URL: `http://<hostname>.fhcrc.org:<port>`
-- Password: The generated password (if using password authentication)
+The script will automatically pull the container image from this repo, set up the resource and port allocation, launch Jupyter Lab with sensible defaults, and show you the connection URL and password in the SLURM stdout file (created in the directory you launch the script from).
 
-### 3. Terminate the Job
+When you're done, close all Jupyter notebooks and stop kernels, then cancel the SLURM job:
+```bash
+scancel -f $SLURM_JOB_ID
+```
 
-When you're done:
-1. Close all Jupyter notebooks and stop kernels
-2. Cancel the SLURM job:
-   ```bash
-   scancel -f $SLURM_JOB_ID
-   ```
+## Advanced Usage
 
-## Configuration
+### Container Image Options
 
-The script automatically:
-- Allocates 8 CPUs and 32GB RAM (configurable in SLURM directives)
-- Sets a 5-day time limit
-- Creates a temporary working directory
-- Generates a random port using `fhfreeport`
-- Mounts necessary directories (`/home`, `/fh`)
-- Configures Jupyter Lab for remote access
+**Option 1: Use Cloud Image (Default - Recommended)**
+```bash
+# Uses the latest image from GitHub Container Registry
+export IMAGE_PATH="oras://ghcr.io/fred-hutch-innovation-lab/jupyter-lab-launcher:0.0.3"
+```
 
-## Container Image Options
-
-### Option 1: Local SIF File (Recommended for Offline/Performance)
+**Option 2: Use Local SIF File**
 ```bash
 # Use a local SIF file in the images directory
 export IMAGE_PATH="/fh/fast/_IRC/FHIL/grp/inhouse_computational_resources/jupyter-lab-launcher/images/jupyter-datascience-notebook.sif"
 ```
 
-### Option 2: Cloud-Hosted SIF (Recommended for Latest Versions)
-```bash
-# Use the packaged cloud SIF from this repository
-export IMAGE_PATH="oras://ghcr.io/fred-hutch-innovation-lab/jupyter-lab-launcher:0.0.3"
-```
-
-## Customization
-
 ### Resource Allocation
+
 Modify the SLURM directives at the top of `launch_jupyter_lab.sh`:
 ```bash
 #SBATCH --cpus-per-task=4    # Increase CPU cores
@@ -73,21 +42,20 @@ Modify the SLURM directives at the top of `launch_jupyter_lab.sh`:
 #SBATCH --time=7-00:00:00    # Increase time limit
 ```
 
+### User Configuration Files
+Place custom configuration in `users/$USER/jupyter_lab_config.py` for personalized Jupyter Lab settings.
+
 ### Package Management
+The image is designed to be minimal and lightweight. Package management is handled by the user within the environment. Consider using Poetry or UV (Python) or Renv (R) to manage language-specific packages.
 
-The image is designed to be minimal and lightweight. Package management is handled at by the user within the environment. Consider using Poetry or UV (python) or Renv (R) to manage lanaguage specific packages.
+### Building Custom Images
+Edit `jupyter-datascience-notebook.def` to add system dependencies, then either:
+- Build manually: `apptainer build jupyter-datascience-notebook.sif jupyter-datascience-notebook.def`
+- Or create a tagged release to trigger automatic GitHub build and publishing
 
-#### System Libraries
-- Edit `jupyter-datascience-notebook.def` and uncomment needed system libraries
-- Rebuild the image when system dependencies change
+You can directly [edit the Apptainer `.def`](https://apptainer.org/docs/user/1.0/build_a_container.html#building-containers-from-apptainer-definition-files) file to add dependencies. Once the definition file is updated, build the `.sif`. Try to use semantic versioning to record versions.
 
-## Building Custom Images
-
-### Customize an Image
-
-You can directly [edit the Apptainer `.def`](https://apptainer.org/docs/user/1.0/build_a_container.html#building-containers-from-apptainer-definition-files) file to add dependencies. Once the definition file is updated, you can manually build the `.sif` with `apptainer build`, or you can trigger a `tagged release` of this repo and Github will publish an updated SIF for you.
-
-### Converting Dockerfile to Definition File
+#### Converting Dockerfile to Definition File
 
 If Apptainer definition file syntax is challenging, you can write a Dockerfile and convert it with [Singularity Python](https://singularityhub.github.io/singularity-cli/recipes).
 
@@ -95,11 +63,3 @@ If Apptainer definition file syntax is challenging, you can write a Dockerfile a
 ml fhPython
 spython recipe ./jupyter-datascience-notebook.dockerfile > jupyter-datascience-notebook.def
 ```
-
-## Cloud Container Registry
-
-### GitHub Container Registry (GHCR)
-
-This repository includes pre-built SIF files hosted on GHCR. A tagged release will trigger a new build.
-
-`oras://ghcr.io/fred-hutch-innovation-lab/jupyter-lab-launcher:0.0.3`
