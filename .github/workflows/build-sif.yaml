@@ -1,0 +1,62 @@
+name: Apptainer build deploy
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'   # Runs only for version tags like v1.2.3
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Check for definition file
+        run: |
+          if [ ! -f "images/jupyter-datascience-notebook.def" ]; then
+            echo "❌ Definition file not found: images/jupyter-datascience-notebook.def"
+            exit 1
+          fi
+          echo "✅ Definition file found"
+
+      - name: Install Apptainer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget build-essential libseccomp-dev pkg-config squashfs-tools cryptsetup
+          export VERSION_APPTAINER=1.4.0
+          wget https://github.com/apptainer/apptainer/releases/download/v${VERSION_APPTAINER}/apptainer_${VERSION_APPTAINER}_amd64.deb
+          sudo dpkg -i apptainer_${VERSION_APPTAINER}_amd64.deb
+
+      - name: Build SIF from def file
+        run: |
+          apptainer build jupyter-datascience-notebook.sif images/jupyter-datascience-notebook.def
+          
+          # Verify the SIF file was created
+          if [ ! -f "jupyter-datascience-notebook.sif" ]; then
+            echo "❌ SIF file was not created"
+            exit 1
+          fi
+          echo "✅ SIF file created successfully"
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GHCR_PAT }}" | apptainer registry login oras://ghcr.io --username ${{ github.actor }} --password-stdin
+
+      - name: Push SIF to GHCR
+        run: |
+          apptainer push jupyter-datascience-notebook.sif oras://ghcr.io/${{ github.repository_owner }}/jupyter-lab-launcher:${{ steps.get_version.outputs.version }}
+          apptainer push jupyter-datascience-notebook.sif oras://ghcr.io/${{ github.repository_owner }}/jupyter-lab-launcher:latest
+
+      - name: Upload SIF to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: jupyter-datascience-notebook.sif
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
