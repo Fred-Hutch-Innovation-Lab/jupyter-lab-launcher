@@ -11,8 +11,8 @@ This directory contains scripts and configuration for running Jupyter Lab instan
    ├── images/
    │   └── jupyter-datascience-notebook.sif  # Local image (optional)
    └── users/
-       └── $USER/
-           └── jupyter_lab_config.py         # Custom config (optional)
+   │   └── $USER/
+   │        └── jupyter_lab_config.py         # Custom config (optional)
    |
    └── launch_jupyter_server.sh
    ```
