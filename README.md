@@ -1,20 +1,19 @@
 # Jupyter Lab on FHIL HPC
 
-This directory contains scripts and configuration for running Jupyter Lab instances on the FHIL HPC cluster using Apptainer containers.
+This directory contains scripts and configuration for running Jupyter Lab instances on the FHIL HPC cluster using Apptainer containers. There are simpler methods of running jupyter on the cluster, but the goal of this method is to give you more control over the system libraries needed to use certain packages, and relies on a more transferable compute environment for reproducible analyses. 
 
 ## Prerequisites
 
-1. **Apptainer Image**: You need a Jupyter Lab Apptainer image (`.sif` file) placed in the `images/` directory
+1. **Apptainer Image**: You need a Jupyter Lab Apptainer image (`.sif` file) placed in the `images/` directory, OR you can use cloud-hosted SIF files directly
 2. **Directory Structure**: Ensure the following directory structure exists:
    ```
-   compute_environments/jupyter-lab/
+   jupyter-lab-launcher/
    ├── images/
-   │   └── jupyter_lab.sif
-   └── user/
+   │   └── jupyter-datascience-notebook.sif  # Local image (optional)
+   └── users/
        └── $USER/
-           └── jupyter_config/
+           └── jupyter_lab_config.py         # Custom config (optional)
    ```
-3. **Package Management**: The image uses minimal packages and is intended more for tracking system dependencies. Python packages are managed with `uv` or `poetry`, R packages with `renv`.
 
 ## Usage
 
@@ -36,7 +35,7 @@ tail -f /home/$USER/jupyter-lab.job.$SLURM_JOB_ID.out
 
 Once the job is running, you'll see connection information in the stdout:
 - URL: `http://<hostname>.fhcrc.org:<port>`
-- Token: The generated token (if using token authentication)
+- Password: The generated password (if using password authentication)
 
 ### 4. Terminate the Job
 
@@ -57,6 +56,20 @@ The script automatically:
 - Mounts necessary directories (`/home`, `/fh`)
 - Configures Jupyter Lab for remote access
 
+## Container Image Options
+
+### Option 1: Local SIF File (Recommended for Offline/Performance)
+```bash
+# Use a local SIF file in the images directory
+export IMAGE_PATH="/fh/fast/_IRC/FHIL/grp/inhouse_computational_resources/jupyter-lab-launcher/images/jupyter-datascience-notebook.sif"
+```
+
+### Option 2: Cloud-Hosted SIF (Recommended for Latest Versions)
+```bash
+# Use the packaged cloud SIF from this repository
+export IMAGE_PATH="oras://ghcr.io/fred-hutch-innovation-lab/jupyter-lab-launcher:0.0.3"
+```
+
 ## Customization
 
 ### Resource Allocation
@@ -69,39 +82,17 @@ Modify the SLURM directives at the top of `launch_jupyter_lab.sh`:
 
 ### Package Management
 
-The image is designed to be minimal and lightweight. Package management is handled at runtime:
-
-#### Python Packages
-- Use `uv` or `poetry` for fast Python package management:
-  ```bash
-  uv add pandas numpy matplotlib
-  uv run python -c "import pandas; print('pandas installed')"
-  ```
-
-#### R Packages
-- Use `renv` for reproducible R environments:
-  ```r
-  install.packages("renv")
-  renv::init()
-  renv::install(c("tidyverse", "ggplot2"))
-  ```
+The image is designed to be minimal and lightweight. Package management is handled at by the user within the environment. Consider using Poetry or UV (python) or Renv (R) to manage lanaguage specific packages.
 
 #### System Libraries
-- Edit `build_image.def` and uncomment needed system libraries
+- Edit `jupyter-datascience-notebook.def` and uncomment needed system libraries
 - Rebuild the image when system dependencies change
-
-### Image Path
-Update `FILE_BASE` and `IMAGE_NAME` variables to point to your specific Jupyter Lab image.
 
 ## Building Custom Images
 
 ### Customize an Image
 
-You can directly [edit the Apptainer `.def`](https://apptainer.org/docs/user/1.0/build_a_container.html#building-containers-from-apptainer-definition-files) file to add dependencies. Once the definition file is updated, build the `.sif`. Try to use semantic versioning to record versions.
-
-```bash
-apptainer build jupyter_lab_FHIL.X.Y.Z.sif jupyter_lab_FHIL.X.Y.Z.def
-```
+You can directly [edit the Apptainer `.def`](https://apptainer.org/docs/user/1.0/build_a_container.html#building-containers-from-apptainer-definition-files) file to add dependencies. Once the definition file is updated, you can manually build the `.sif` with `apptainer build`, or you can trigger a `tagged release` of this repo and Github will publish an updated SIF for you.
 
 ### Converting Dockerfile to Definition File
 
@@ -109,8 +100,16 @@ If Apptainer definition file syntax is challenging, you can write a Dockerfile a
 
 ```bash
 ml fhPython
-spython recipe ./jupyter_lab_FHIL.X.Y.Z.dockerfile > jupyter_lab_FHIL.X.Y.Z.def
+spython recipe ./jupyter-datascience-notebook.dockerfile > jupyter-datascience-notebook.def
 ```
+
+## Cloud Container Registry
+
+### GitHub Container Registry (GHCR)
+
+This repository includes pre-built SIF files hosted on GHCR. A tagged release will trigger a new build.
+
+`oras://ghcr.io/fred-hutch-innovation-lab/jupyter-lab-launcher:0.0.3`
 
 ## Dependencies
 

@@ -1,32 +1,47 @@
-#!/bin/sh
+#!/bin/bash
 #SBATCH --job-name=jupyter-lab
-#SBATCH --time=5-00:00:00   # days-hours:minutes:seconds
+#SBATCH --time=1-00:00:00   # days-hours:minutes:seconds
 #SBATCH --ntasks=1          
 #SBATCH --cpus-per-task=8   # per sciwiki, use CPUs to inform mem. 1 CPU = 4 Gb
 #SBATCH --mem-per-cpu=4G
 #SBATCH --output=jupyter-lab.job.out
 #SBATCH --error=jupyter-lab.job.err
 
+module purge
 module load Apptainer
 
 # Select a more secure password if desired
 export APPTAINERENV_JUPYTER_PASSWORD="" # $(openssl rand -base64 15)
-export IMAGE_NAME="jupyter.sif"
 
-export FILE_BASE="/fh/fast/_IRC/FHIL/grp/inhouse_computational_resources/jupyter-lab-launcher"
-# Found in $FILE_BASE/images/
+## Container image path - local SIF file or GHCR image
+## local
+# export IMAGE_PATH="/fh/fast/_IRC/FHIL/grp/inhouse_computational_resources/jupyter-lab-launcher/images/jupyter-datascience-notebook.sif"
+## or use apptainer pull to download the image from GHCR
+## use 'ORAS' protocol for SIFs, and 'docker' for Docker images
+export IMAGE_PATH="oras://ghcr.io/fred-hutch-innovation-lab/jupyter-lab-launcher:0.0.3"
 
-export USER_FILE_BASE="${FILE_BASE}/user/${USER}"
+
 workdir=$(mktemp -d)
 export APPTAINERENV_USER=$(id -un)
 
-# export APPTAINER_BIND="${workdir}/jupyter_lab_config.py:/etc/jupyter/jupyter_lab_config.py"
+CONFIG_FILE="/fh/fast/_IRC/FHIL/grp/inhouse_computational_resources/jupyter-lab-launcher/users/${USER}/jupyter_lab_config.py"
+# Check if custom config exists, otherwise use default
+if [ -f "${CONFIG_FILE}" ]; then
+    CONFIG_ARG="--config=${CONFIG_FILE}"
+    echo "Using custom config: $CONFIG_ARG"
+else
+    CONFIG_ARG=""
+    echo "No custom config found, using default Jupyter Lab configuration"
+fi
 
 # Get an available port
 export PORT=$(fhfreeport)
 
 cat 2>&1 <<END
 Jupyter Lab is starting up...
+
+Container Information:
+- Image: ${IMAGE_PATH}
 
 Connection Information:
 - URL: http://$(hostname).fhcrc.org:${PORT}
@@ -41,16 +56,19 @@ When done using Jupyter Lab, terminate the job by:
 2. Issue the following command on the login node:
 
       scancel -f ${SLURM_JOB_ID}
+
+Note that if the server is not available despite the job running, it may be because
+the image is being downloaded. Check the error log to see if it's still pulling.
 END
 
 # Launch Jupyter Lab with Apptainer
-singularity exec --cleanenv \
+apptainer exec --cleanenv \
                  --scratch /run,/tmp \
                  --workdir $(mktemp -d) \
                  --bind /home:/home \
                  --bind /fh:/fh \
-                 ${FILE_BASE}/images/${IMAGE_NAME} \
-   jupyter lab --config=${USER_FILE_BASE}/jupyter_lab_config.py \
+                 ${IMAGE_PATH} \
+   jupyter lab ${CONFIG_ARG} \
                --port=${PORT} \
                --ip=0.0.0.0 \
                --no-browser \
