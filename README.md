@@ -13,6 +13,8 @@ This directory contains scripts and configuration for running Jupyter Lab instan
    └── users/
        └── $USER/
            └── jupyter_lab_config.py         # Custom config (optional)
+   |
+   └── launch_jupyter_server.sh
    ```
 
 ## Usage
