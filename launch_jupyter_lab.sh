@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=jupyter-lab
-#SBATCH --time=1-00:00:00   # days-hours:minutes:seconds
+#SBATCH --time=5-00:00:00   # days-hours:minutes:seconds
 #SBATCH --ntasks=1          
 #SBATCH --cpus-per-task=8   # per sciwiki, use CPUs to inform mem. 1 CPU = 4 Gb
 #SBATCH --mem-per-cpu=4G
