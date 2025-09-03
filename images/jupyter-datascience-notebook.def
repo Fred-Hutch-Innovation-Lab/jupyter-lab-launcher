@@ -38,6 +38,8 @@ From: quay.io/jupyter/datascience-notebook:latest
     # R packages will be managed with renv later
     # R -e "install.packages(c('package1', 'package2'), repos='https://cran.rstudio.com/')"
     
+    export PATH="/root/.local/bin/:$PATH"
+
     # Clean up
     apt-get clean
     rm -rf /var/lib/apt/lists/*
