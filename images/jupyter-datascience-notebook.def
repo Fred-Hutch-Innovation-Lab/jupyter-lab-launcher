@@ -10,6 +10,14 @@ From: quay.io/jupyter/datascience-notebook:latest
     export JUPYTER_ENABLE_LAB=yes
     export JUPYTER_TOKEN=""
     export JUPYTER_PASSWORD=""
+    # Point caches to persistent scratch dirs (bind these at runtime)
+    export UV_CACHE_DIR=/fh/fast/_IRC/FHIL/grp/bioinfo_tools/package_caches/uv/
+    export UV_PYTHON_INSTALL_DIR=/fh/fast/_IRC/FHIL/grp/bioinfo_tools/package_caches/uv/
+    export RENV_PATHS_CACHE=/fh/fast/_IRC/FHIL/grp/bioinfo_tools/package_caches/renv/
+    
+    export JUPYTER_DATA_DIR=/tmp/jupyter_data
+    export JUPYTER_CONFIG_DIR=/tmp/jupyter_config
+    export IPYTHONDIR=/tmp/ipython
 
 %post
     # Update package lists and install essential system libraries
@@ -19,6 +27,9 @@ From: quay.io/jupyter/datascience-notebook:latest
     # apt-get install -y \
     #     libcurl4-openssl-dev 
     
+    ## Add UV
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
     # Python packages will be managed with uv/poetry later
     # pip install --no-cache-dir \
     #     package1 \
